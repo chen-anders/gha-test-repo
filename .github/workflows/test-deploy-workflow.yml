@@ -23,7 +23,7 @@ jobs:
               repo: context.repo.repo,
               name: "PRODUCTION_LAST_DEPLOY_TIME"
             });
-            const lastDeployTime = data.value;
+            const lastDeployTime = parseInt(data.value);
             const currentTime = Math.round(new Date().getTime() / 1000);
             console.log(`Last recorded deploy: ${lastDeployTime}`);
             console.log(`Current Time: ${currentTime}`);
