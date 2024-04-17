@@ -26,6 +26,8 @@ jobs:
             const lastDeployTime = data.value;
             const currentTime = Math.round(new Date().getTime() / 1000);
             console.log(`Last recorded deploy: ${lastDeployTime}`);
+            console.log(`Current Time: ${currentTime}`);
+            console.log(`${currentTime} >= ${(lastDeployTime + maxSecondsBetweenDeploys)}`);
             core.setOutput('maxSecondsBetweenDeploysExceeded', `${currentTime >= (lastDeployTime + maxSecondsBetweenDeploys)}`)
             core.setOutput('value', `${lastDeployTime}`);
 
