@@ -1,0 +1,51 @@
+name: Test Deploy Workflow
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Test Deploy Workflow
+    permissions:
+      actions: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get last deploy time
+        id: read-last-deploy-time
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GHA_PAT_TOKEN }}
+          script: |
+            const maxSecondsBetweenDeploys = 5 * 60;
+            const { data } = await github.rest.actions.getRepoVariable({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              name: "PRODUCTION_LAST_DEPLOY_TIME"
+            });
+            const lastDeployTime = data.value;
+            const currentTime = Math.round(new Date().getTime() / 1000);
+            console.log(`Last recorded deploy: ${lastDeployTime}`);
+            core.setOutput('maxSecondsBetweenDeploysExceeded', `${currentTime >= (lastDeployTime + maxSecondsBetweenDeploys)}`)
+            core.setOutput('value', `${lastDeployTime}`);
+
+      - name: Check step output
+        shell: bash
+        run: |
+          bash -eou pipefail
+          if [[ "${{ steps.read-last-deploy-time.outputs.maxSecondsBetweenDeploysExceeded }}" == "true" ]]; then
+            echo "Deploy proceeding as the maximum time between deploys was exceeded. (${{ github.sha }})"
+            echo "skip_deploy=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Set last deploy time
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GHA_PAT_TOKEN }}
+          script: |
+            await github.rest.actions.updateRepoVariable({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              name: "PRODUCTION_LAST_DEPLOY_TIME",
+              value: "${Math.round(new Date().getTime() / 1000)}";
+            });
