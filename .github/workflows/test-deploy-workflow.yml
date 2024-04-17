@@ -45,9 +45,11 @@ jobs:
         with:
           github-token: ${{ secrets.GHA_PAT_TOKEN }}
           script: |
+            const currentTime = Math.round(new Date().getTime() / 1000);
+            console.log(`Setting last deploy time variable to ${currentTime}`);
             await github.rest.actions.updateRepoVariable({
               owner: context.repo.owner,
               repo: context.repo.repo,
               name: "PRODUCTION_LAST_DEPLOY_TIME",
-              value: "${Math.round(new Date().getTime() / 1000)}"
+              value: `${currentTime}`
             });
