@@ -10,6 +10,7 @@ jobs:
       - name: Lock the branch
         uses: actions/github-script@v6
         with:
+          github-token: ${{ secrets.PAT_TOKEN }}
           script: |
             const branchName = context.ref.replace('refs/heads/', '');
             if (branchName === 'main' || branchName === 'master') {
