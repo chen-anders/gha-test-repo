@@ -38,12 +38,19 @@ jobs:
                 }
 
                 // Prepare the updated protection object
-                const updatedProtection = {
-                  required_status_checks: {
+                const statusChecksContext = protection.required_status_checks?.contexts || [];
+                const statusChecks = protection.required_status_checks?.checks || [];
+                var requiredStatusChecks = nil
+                if (statusChecksContext.length > 0 || statusChecks.length > 0) {
+                  requiredStatusChecks = {
                     strict: protection.required_status_checks?.strict || false,
-                    contexts: protection.required_status_checks?.contexts || [],
-                    checks: protection.required_status_checks?.checks || []
-                  },
+                    contexts: statusChecksContext,
+                    checks: statusChecks
+                  };
+                }
+
+                const updatedProtection = {
+                  required_status_checks: requiredStatusChecks,
                   enforce_admins: protection.enforce_admins?.enabled || false,
                   required_pull_request_reviews: protection.required_pull_request_reviews || null,
                   restrictions: protection.restrictions || null,
