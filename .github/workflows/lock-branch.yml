@@ -1,0 +1,70 @@
+name: Lock Main/Master Branch
+
+on:
+  workflow_dispatch:
+
+jobs:
+  lock-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Lock the branch
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const branchName = context.ref.replace('refs/heads/', '');
+            if (branchName === 'main' || branchName === 'master') {
+              try {
+                const { data: protection } = await github.rest.repos.getBranchProtection({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  branch: branchName
+                });
+
+                const newProtection = {
+                  required_status_checks: protection.required_status_checks || null,
+                  enforce_admins: protection.enforce_admins || { enabled: true },
+                  required_pull_request_reviews: protection.required_pull_request_reviews || {
+                    dismissal_restrictions: {},
+                    dismiss_stale_reviews: false,
+                    require_code_owner_reviews: true,
+                    required_approving_review_count: 1
+                  },
+                  restrictions: protection.restrictions || null
+                };
+
+                newProtection.required_pull_request_reviews.require_code_owner_reviews = true;
+                newProtection.required_pull_request_reviews.required_approving_review_count = 1;
+
+                await github.rest.repos.updateBranchProtection({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  branch: branchName,
+                  ...newProtection
+                });
+
+                console.log('Branch locked:', branchName);
+              } catch (error) {
+                if (error.status === 404) {
+                  await github.rest.repos.updateBranchProtection({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    branch: branchName,
+                    required_status_checks: null,
+                    enforce_admins: true,
+                    required_pull_request_reviews: {
+                      dismissal_restrictions: {},
+                      dismiss_stale_reviews: false,
+                      require_code_owner_reviews: true,
+                      required_approving_review_count: 1
+                    },
+                    restrictions: null
+                  });
+
+                  console.log('Branch protection added and branch locked:', branchName);
+                } else {
+                  throw error;
+                }
+              }
+            } else {
+              console.log('Branch not locked as it is not main or master:', branchName);
+            }
