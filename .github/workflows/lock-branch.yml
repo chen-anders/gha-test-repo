@@ -40,7 +40,7 @@ jobs:
                 // Prepare the updated protection object
                 const statusChecksContext = protection.required_status_checks?.contexts || [];
                 const statusChecks = protection.required_status_checks?.checks || [];
-                var requiredStatusChecks = nil
+                var requiredStatusChecks = null;
                 if (statusChecksContext.length > 0 || statusChecks.length > 0) {
                   requiredStatusChecks = {
                     strict: protection.required_status_checks?.strict || false,
