@@ -15,25 +15,53 @@ jobs:
             const branchName = context.ref.replace('refs/heads/', '');
             if (branchName === 'main' || branchName === 'master') {
               try {
-                // Get the current protection settings
                 const { data: protection } = await github.rest.repos.getBranchProtection({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   branch: branchName
                 });
 
-                // Update protection settings to include branch lock
+                // Remove unnecessary URLs from the protection object
+                delete protection.url;
+                if (protection.required_status_checks) {
+                  delete protection.required_status_checks.url;
+                  delete protection.required_status_checks.contexts_url;
+                }
+                if (protection.required_pull_request_reviews) {
+                  delete protection.required_pull_request_reviews.url;
+                }
+                if (protection.required_signatures) {
+                  delete protection.required_signatures.url;
+                }
+                if (protection.enforce_admins) {
+                  delete protection.enforce_admins.url;
+                }
+
+                // Prepare the updated protection object
+                const updatedProtection = {
+                  required_status_checks: {
+                    strict: protection.required_status_checks?.strict || false,
+                    contexts: protection.required_status_checks?.contexts || [],
+                    checks: protection.required_status_checks?.checks || []
+                  },
+                  enforce_admins: protection.enforce_admins?.enabled || false,
+                  required_pull_request_reviews: protection.required_pull_request_reviews || null,
+                  restrictions: protection.restrictions || null,
+                  required_linear_history: protection.required_linear_history?.enabled || false,
+                  allow_force_pushes: protection.allow_force_pushes?.enabled || false,
+                  allow_deletions: protection.allow_deletions?.enabled || false,
+                  block_creations: protection.block_creations?.enabled || false,
+                  required_conversation_resolution: protection.required_conversation_resolution?.enabled || false,
+                  lock_branch: true, // Lock the branch
+                  allow_fork_syncing: protection.allow_fork_syncing?.enabled || false
+                };
+
+                // Update the branch protection settings
                 await github.rest.repos.updateBranchProtection({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   branch: branchName,
-                  required_status_checks: protection.required_status_checks || null,
-                  enforce_admins: protection.enforce_admins || { enabled: true },
-                  required_pull_request_reviews: {
-                    ...protection.required_pull_request_reviews
-                  },
-                  restrictions: protection.restrictions || null,
-                  lock_branch: true  // Lock the branch
+                  ...updatedProtection
                 });
 
                 console.log('Branch locked:', branchName);
@@ -44,7 +72,11 @@ jobs:
                     owner: context.repo.owner,
                     repo: context.repo.repo,
                     branch: branchName,
-                    required_status_checks: null,
+                    required_status_checks: {
+                      strict: false,
+                      contexts: [],
+                      checks: []
+                    },
                     enforce_admins: true,
                     required_pull_request_reviews: {
                       dismissal_restrictions: {},
@@ -52,8 +84,14 @@ jobs:
                       require_code_owner_reviews: true,
                       required_approving_review_count: 1
                     },
-                    restrictions: null,  // Do not include restrictions for non-organization repositories
-                    lock_branch: true  // Lock the branch
+                    restrictions: null,
+                    required_linear_history: false,
+                    allow_force_pushes: false,
+                    allow_deletions: false,
+                    block_creations: false,
+                    required_conversation_resolution: false,
+                    lock_branch: true,
+                    allow_fork_syncing: false
                   });
 
                   console.log('Branch protection added and branch locked:', branchName);
