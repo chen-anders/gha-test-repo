@@ -21,6 +21,11 @@ jobs:
                   branch: branchName
                 });
 
+                if (protection.lock_branch == true) {
+                  console.log(`Branch ${branchName} is already locked.`);
+                  return null;
+                }
+
                 // Remove unnecessary URLs from the protection object
                 delete protection.url;
                 if (protection.required_status_checks) {
@@ -74,34 +79,7 @@ jobs:
                 console.log('Branch locked:', branchName);
               } catch (error) {
                 if (error.status === 404) {
-                  // Create branch protection with locking if it does not exist
-                  await github.rest.repos.updateBranchProtection({
-                    owner: context.repo.owner,
-                    repo: context.repo.repo,
-                    branch: branchName,
-                    required_status_checks: {
-                      strict: false,
-                      contexts: [],
-                      checks: []
-                    },
-                    enforce_admins: true,
-                    required_pull_request_reviews: {
-                      dismissal_restrictions: {},
-                      dismiss_stale_reviews: false,
-                      require_code_owner_reviews: true,
-                      required_approving_review_count: 1
-                    },
-                    restrictions: null,
-                    required_linear_history: false,
-                    allow_force_pushes: false,
-                    allow_deletions: false,
-                    block_creations: false,
-                    required_conversation_resolution: false,
-                    lock_branch: true,
-                    allow_fork_syncing: false
-                  });
-
-                  console.log('Branch protection added and branch locked:', branchName);
+                  throw new Error(`Branch protection rules for ${branchName} do not exist.`);
                 } else {
                   throw error;
                 }
