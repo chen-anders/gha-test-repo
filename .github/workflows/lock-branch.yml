@@ -21,8 +21,7 @@ jobs:
                   branch: branchName
                 });
 
-                console.log(`Lock branch status: ${JSON.stringify(protection.lock_branch)}`);
-                if (protection.lock_branch == true) {
+                if (protection.lock_branch.enabled == true) {
                   console.log(`Branch ${branchName} is already locked.`);
                   return null;
                 }
